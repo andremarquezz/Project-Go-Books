@@ -2,42 +2,54 @@ package web
 
 import (
 	"encoding/json"
-	"gobooks/internal/service"
+	"log"
 	"net/http"
 	"strconv"
+
+	"gobooks/internal/service"
 )
 
+// BookHandlers lida com as requisições HTTP relacionadas a livros.
 type BookHandlers struct {
 	service *service.BookService
 }
 
+// NewBookHandlers cria uma nova instância de BookHandlers.
 func NewBookHandlers(service *service.BookService) *BookHandlers {
 	return &BookHandlers{service: service}
 }
 
+// GetBooks lida com a requisição GET /books.
 func (h *BookHandlers) GetBooks(w http.ResponseWriter, r *http.Request) {
-	books, err := h.service.GetBook()
+	books, err := h.service.GetBooks()
 	if err != nil {
-		http.Error(w, "Failed to get books", http.StatusInternalServerError)
+		// Logar a mensagem de erro detalhada para o desenvolvedor
+		log.Printf("Error fetching books: %v", err)
+
+		// Enviar uma mensagem amigável para o cliente
+		http.Error(w, "Failed to retrieve books", http.StatusInternalServerError)
+		return
+	}
+
+	if len(books) == 0 {
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(books)
-
 }
 
+// CreateBook lida com a requisição POST /books.
 func (h *BookHandlers) CreateBook(w http.ResponseWriter, r *http.Request) {
 	var book service.Book
-	err := json.NewDecoder(r.Body).Decode(&book)
-	if err != nil {
-		http.Error(w, "Failed to decode, invalid request payload", http.StatusBadRequest)
+	if err := json.NewDecoder(r.Body).Decode(&book); err != nil {
+		http.Error(w, "invalid request payload", http.StatusBadRequest)
 		return
 	}
 
-	err = h.service.CreateBook(&book)
-	if err != nil {
-		http.Error(w, "Failed to create book", http.StatusInternalServerError)
+	if err := h.service.CreateBook(&book); err != nil {
+		http.Error(w, "failed to create book", http.StatusInternalServerError)
 		return
 	}
 
@@ -45,6 +57,7 @@ func (h *BookHandlers) CreateBook(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(book)
 }
 
+// GetBookByID lida com a requisição GET /books/{id}.
 func (h *BookHandlers) GetBookByID(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, err := strconv.Atoi(idStr)
