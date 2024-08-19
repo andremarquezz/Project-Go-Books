@@ -5,6 +5,8 @@ import (
 	"gobooks/internal/service"
 	"gobooks/internal/web"
 	"net/http"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func main() {
