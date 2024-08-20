@@ -3,6 +3,8 @@ package service
 import (
 	"database/sql"
 	"errors"
+	"fmt"
+	"time"
 )
 
 // Book representa um livro no sistema.
@@ -89,6 +91,31 @@ func (s *BookService) DeleteBook(id int) error {
 	query := "DELETE FROM books WHERE id = ?"
 	_, err := s.db.Exec(query, id)
 	return err
+}
+
+func (s *BookService) SimulateReading(bookID int, duration time.Duration, results chan<- string) {
+	book, err := s.GetBookByID(bookID)
+	if err != nil || book == nil {
+		results <- fmt.Sprintf("Book %d not found", bookID)
+		return
+	}
+	time.Sleep(duration)
+	results <- fmt.Sprintf("Book %s read in %d", book.Title, duration)
+}
+
+func (s *BookService) SimulateMultipleReading(bookIDs []int, duration time.Duration) []string {
+	results := make(chan string, len(bookIDs))
+	for _, id := range bookIDs {
+		go func(bookID int) {
+			s.SimulateReading(bookID, duration, results)
+		}(id)
+	}
+	var response []string
+	for range bookIDs {
+		response = append(response, <-results)
+	}
+	close(results)
+	return response
 }
 
 // SearchBooksByName busca livros pelo nome (título) no banco de dados.
