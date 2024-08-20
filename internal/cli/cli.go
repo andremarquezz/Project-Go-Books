@@ -2,9 +2,8 @@ package cli
 
 import (
 	"fmt"
-	"os"
-
 	"gobooks/internal/service"
+	"os"
 )
 
 // BookCLI lida com a interface de linha de comando para buscar livros.
